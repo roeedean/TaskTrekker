@@ -2,55 +2,176 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>TaskList Manager</title>
-    <!-- Link to Bootstrap CSS -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>TaskTrekker App</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
 
-    <div class="container">
+<div class="container">
+    <h1 class="task-title">TaskTrekker</h1>
 
-        <h1 class="mt-4 mb-4">TaskList Manager</h1>
-        <div class="task-icon"><i class="fas fa-tasks"></i></div>
-        <div class="recommendation-icon"><i class="fas fa-lightbulb"></i></div>
-        <!-- Task form -->
-        <form id="taskForm" class="mb-4">
-            <div class="form-group">
-                <label for="taskDescription">Task Description</label>
-                <input type="text" class="form-control" id="taskDescription" placeholder="Enter task description">
+    <div class="sort-dropdown">
+        <form method="GET" action="/list/{{ current_list }}">
+            <div class="form-row form-row-align">
+                <div class="col-auto">
+                    <label for="sort_by" class="col-form-label">Sort by:</label>
+                </div>
+                <div class="col-auto">
+                    <select class="form-control" id="sort_by" name="sort_by" onchange="this.form.submit()">
+                        <option value="">Select...</option>
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+                        <option value="due_status" {% if sort_by == 'due_status' %}selected{% endif %}>Due Status</option>
+                        <option value="due_date" {% if sort_by == 'due_date' %}selected{% endif %}>Due Date</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <label for="current_list" class="col-form-label">List:</label>
+                </div>
+                <div class="col-auto">
+                    <select class="form-control" id="current_list" name="list" onchange="location.href='/list/' + this.value">
+                        {% for list in lists %}
+                        <option value="{{ list }}" {% if current_list == list %}selected{% endif %}>{{ list }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="taskPriority">Task Priority</label>
-                <select class="form-control" id="taskPriority">
-                    <option selected disabled>Choose...</option>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                </select>
+            <div class="form-row">
+                <div class="col-auto">
+                    <div class="form-check form-check-inline align-middle">
+                        <input class="form-check-input" type="checkbox" id="show_completed" name="show_completed" onchange="this.form.submit()" {% if show_completed %}checked{% endif %}>
+                        <label class="form-check-label" for="show_completed">Show Completed</label>
+                    </div>
+                </div>
             </div>
-            <button type="submit" class="btn btn-primary">Add Task</button>
         </form>
-        <!-- Task list -->
-
-        <div id="taskList">
-            <h3>Task List</h3>
-            <ul class="list-group">
-                <!-- Task items will be dynamically added here -->
-            </ul>
-        </div>
-        <!-- Recommendation -->
-
-        <div id="recommendation" class="mt-4">
-            <h3>Recommended Task</h3>
-            <div id="recommendedTask" class="alert alert-success" role="alert">
-                <!-- Recommended task will be displayed here -->
-            </div>
-            <button id="recommendTask" class="btn btn-success">Recommend Task</button>
-        </div>
     </div>
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <div class="list-title">{{ current_list }}</div>
+
+    {% for todo in todos %}
+    <div class="mb-3">
+        <form action='/update_todo' class="update-form" id="update-form-{{ todo.index }}" method="POST">
+            <input type="hidden" name="list" value="{{ current_list }}">
+            <div class="form-row form-row-custom">
+                <div class="col-md-6">
+                    <input name="task_id" type="hidden" value="{{todo.task_id}}">
+                    <input class="form-control task-input" name="task" type="text" value="{{todo.task}}">
+                </div>
+                <div class="col-auto">
+                    <!-- Badge for due status -->
+                    {% if todo.due_status.lower() == 'on time' %}
+                    <span class="badge badge-secondary badge-custom">{{todo.due_status}}</span>
+                    {% elif todo.due_status.lower() == 'past due' %}
+                    <span class="badge badge-danger badge-custom">{{todo.due_status}}</span>
+                    {% elif todo.due_status.lower() == 'due today' %}
+                    <span class="badge badge-warning badge-custom">{{todo.due_status}}</span>
+                    {% else %}
+                    <span class="badge badge-secondary badge-custom">Unknown</span>
+                    {% endif %}
+                </div>
+                <div class="col-auto">
+                    <input class="form-control task-input" name="due_date" required type="date" value="{{todo.due_date}}">
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group">
+                        <button class="btn btn-warning btn-custom update-btn" name="update_todo" type="submit" value="update">Update</button>
+                        <button class="btn btn-success btn-custom complete-btn" name="update_todo" type="submit" value="complete">Complete</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+
+    <hr>
+
+    <div class="pb-5 task-form">
+        <form action='/add_task' method="POST" class="w-100">
+            <input type="hidden" name="list" value="{{ current_list }}">
+            <div class="form-row form-row-custom">
+                <div class="col-md-6">
+                    <input class="form-control task-input" name="task" placeholder="Enter your new task here" type="text">
+                </div>
+                <div class="col-auto">
+                    <span class="badge badge-primary badge-custom">New</span>
+                </div>
+                <div class="col-auto">
+                    <input class="form-control task-input" name="due_date" required type="date">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary btn-custom" name="add_todo" type="submit" value="add">Add Task</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="create-list-form mt-5">
+        <form method="POST" action="/create_list">
+            <div class="form-row align-items-center">
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="list_name" placeholder="New list name">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Create List</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <form method="POST" action="/delete_list/{{ current_list }}" class="mt-3">
+        <div class="form-row align-items-center">
+            <div class="col-auto">
+                <button type="submit" class="btn btn-danger" {% if current_list == 'Default' %}disabled{% endif %}>Delete List</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<footer class="text-center">
+    <ul class="list-inline footer-links">
+        <li class="list-inline-item"><a href="/">Home</a></li>
+        <li class="list-inline-item"><a href="#">Services</a></li>
+        <li class="list-inline-item"><a href="#">About</a></li>
+    </ul>
+    <p>Developed by roeedean, Israel</p>
+</footer>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const forms = document.querySelectorAll(".update-form");
+
+        forms.forEach(function (form) {
+            const taskField = form.querySelector("input[name='task']");
+            const dueDateField = form.querySelector("input[name='due_date']");
+            const updateBtn = form.querySelector(".update-btn");
+            const completeBtn = form.querySelector(".complete-btn");
+
+            if (taskField && dueDateField && updateBtn && completeBtn) {
+                const originalTaskValue = taskField.value;
+                const originalDueDateValue = dueDateField.value;
+
+                taskField.addEventListener("input", updateFormVisibility);
+                dueDateField.addEventListener("input", updateFormVisibility);
+
+                function updateFormVisibility() {
+                    if (taskField.value !== originalTaskValue || dueDateField.value !== originalDueDateValue) {
+                        updateBtn.style.display = "inline-block";
+                        completeBtn.style.display = "none";
+                    } else {
+                        updateBtn.style.display = "none";
+                        completeBtn.style.display = "inline-block";
+                    }
+                }
+
+                updateFormVisibility();
+            }
+        });
+    });
+</script>
 </body>
 </html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskTrekker - Home</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h1 class="task-title">TaskTrekker</h1>
+
+    <div class="list-title">All Lists</div>
+
+    {% for list in lists %}
+    <a href="/list/{{ list }}" class="list-link">{{ list }}</a>
+    {% endfor %}
+</div>
+
+<footer class="text-center">
+    <ul class="list-inline footer-links">
+        <li class="list-inline-item"><a href="/">Home</a></li>
+        <li class="list-inline-item"><a href="#">Services</a></li>
+        <li class="list-inline-item"><a href="#">About</a></li>
+    </ul>
+    <p>Developed by roeedean, Israel</p>
+</footer>
+
+</body>
+</html>

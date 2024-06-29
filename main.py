@@ -1,106 +1,116 @@
+from flask import Flask, render_template, request, redirect, url_for
 import pandas as pd
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import make_pipeline
 import random
+import string
 
-# Initialize an empty task dictionary
-tasks = {}
+# Initialize data structure with lists
+data = {
+    "lists": {
+        "Default": pd.read_csv("to_do_list.csv")
+    }
+}
 
-# Load pre-existing tasks from a CSV file (if any)
-try:
-    tasks_df = pd.read_csv('tasks.csv')
-    tasks = tasks_df.set_index('description')['priority'].to_dict()
-except FileNotFoundError:
-    pass
+def assign_taskid(todos):
+    task_ids = todos['task_id'].to_list()
+    id_length = 5
+    characters = string.ascii_lowercase + string.digits
+    while True:
+        new_id = 't'+''.join(random.choice(characters) for _ in range(id_length))
+        if new_id not in task_ids:
+            return new_id
 
-# Train the task priority classifier
-vectorizer = CountVectorizer()
-clf = MultinomialNB()
-model = make_pipeline(vectorizer, clf)
-model.fit(list(tasks.keys()), list(tasks.values()))
+def due_status(due_date):
+    today = pd.Timestamp.now().strftime('%Y-%m-%d')
+    if due_date == today:
+        return 'Due today'
+    elif due_date > today:
+        return 'On time'
+    elif due_date < today:
+        return 'Past due'
 
+app = Flask(__name__)
 
-# Function to save tasks to a CSV file
-def save_tasks():
-    tasks_df = pd.DataFrame(list(tasks.items()), columns=['description', 'priority'])
-    tasks_df.to_csv('tasks.csv', index=False)
+@app.route('/')
+def homepage():
+    return render_template("home.html", lists=data["lists"].keys())
 
+@app.route('/list/<list_name>')
+def index(list_name):
+    sort_by = request.args.get('sort_by', '')
+    show_completed = request.args.get('show_completed', 'false').lower() == 'true'
+    
+    if list_name not in data["lists"]:
+        list_name = 'Default'
 
-# Function to add a task to the list
-def add_task(description, priority):
-    tasks[description] = priority
-    save_tasks()
+    todos = data["lists"][list_name]
+    if not show_completed:
+        todos = todos[todos['status'] != 'complete']
 
-
-# Function to remove a task by description
-def remove_task(description):
-    if description in tasks:
-        del tasks[description]
-        save_tasks()
+    if sort_by == 'name':
+        todos_sorted = todos.sort_values(by='task')
+    elif sort_by == 'due_status':
+        todos_sorted = todos.sort_values(by='due_status')
+    elif sort_by == 'due_date':
+        todos_sorted = todos.sort_values(by='due_date')
     else:
-        print("Task not found.")
+        todos_sorted = todos
 
+    todos_sorted['due_status'] = todos_sorted['due_date'].apply(due_status)
+    return render_template("index.html", todos=todos_sorted.to_dict(orient='records'), sort_by=sort_by, lists=data["lists"].keys(), current_list=list_name, show_completed=show_completed)
 
-# Function to list all tasks
-def list_tasks():
-    if not tasks:
-        print("No tasks available.")
+@app.route('/add_task', methods=['POST'])
+def add_task():
+    item = request.form.get('task')
+    create_date = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+    due_date = request.form.get('due_date')
+    status = 'open'
+    current_list = request.form.get('list', 'Default')
+
+    if current_list not in data["lists"]:
+        current_list = 'Default'
+
+    todos = data["lists"][current_list]
+    task_id = assign_taskid(todos)
+    due_status = ''
+    todos.loc[len(todos)] = [item, create_date, due_date, status, task_id, due_status]
+    todos.to_csv(f"{current_list}_to_do_list.csv", index=False)
+    data["lists"][current_list] = todos
+    return redirect(url_for('index', list_name=current_list))
+
+@app.route('/update_todo/', methods=['POST'])
+def update_todo():
+    task_id = (request.form.get('task_id'))
+    current_list = request.form.get('list', 'Default')
+
+    if current_list not in data["lists"]:
+        current_list = 'Default'
+
+    todos = data["lists"][current_list]
+    task_index = todos[todos['task_id'] == task_id].index[0]
+    button_pushed = request.form.get('update_todo')
+    if button_pushed == 'update':
+        todos.at[task_index, 'due_date'] = request.form.get('due_date')
+        todos.at[task_index, 'task'] = request.form.get('task')
+    elif button_pushed == 'complete':
+        todos.at[task_index, 'status'] = 'complete'
     else:
-        tasks_df = pd.DataFrame(list(tasks.items()), columns=['Description', 'Priority'])
-        print(tasks_df)
+        pass
+    todos.to_csv(f"{current_list}_to_do_list.csv", index=False)
+    data["lists"][current_list] = todos
+    return redirect(url_for('index', list_name=current_list))
 
+@app.route('/create_list', methods=['POST'])
+def create_list():
+    list_name = request.form.get('list_name')
+    if list_name and list_name not in data["lists"]:
+        data["lists"][list_name] = pd.DataFrame(columns=["task", "created_date", "due_date", "status", "task_id", "due_status"])
+    return redirect(url_for('index', list_name=list_name))
 
-# Function to recommend a task based on machine learning
-def recommend_task():
-    if tasks:
-        # Get high-priority tasks
-        high_priority_tasks = [desc for desc, priority in tasks.items() if priority == 'High']
+@app.route('/delete_list/<list_name>', methods=['POST'])
+def delete_list(list_name):
+    if list_name in data["lists"] and list_name != "Default":
+        del data["lists"][list_name]
+    return redirect(url_for('homepage'))
 
-        if high_priority_tasks:
-            # Choose a random high-priority task
-            random_task = random.choice(high_priority_tasks)
-            print(f"Recommended task: {random_task} - Priority: High")
-        else:
-            print("No high-priority tasks available for recommendation.")
-    else:
-        print("No tasks available for recommendations.")
-
-
-# Main menu
-while True:
-    print("\nTask Management App")
-    print("1. Add Task")
-    print("2. Remove Task")
-    print("3. List Tasks")
-    print("4. Recommend Task")
-    print("5. Exit")
-
-    choice = input("Select an option: ")
-
-    if choice == "1":
-        description = input("Enter task description: ")
-        priority = input("Enter task priority (Low/Medium/High): ").capitalize()
-        if priority not in {'Low', 'Medium', 'High'}:
-            print("Invalid priority. Please enter either Low, Medium, or High.")
-            continue
-        add_task(description, priority)
-        print("Task added successfully.")
-
-    elif choice == "2":
-        description = input("Enter task description to remove: ")
-        remove_task(description)
-        print("Task removed successfully.")
-
-    elif choice == "3":
-        list_tasks()
-
-    elif choice == "4":
-        recommend_task()
-
-    elif choice == "5":
-        print("Goodbye!")
-        break
-
-    else:
-        print("Invalid option. Please select a valid option.")
+if __name__ == '__main__':
+    app.run(debug=True)

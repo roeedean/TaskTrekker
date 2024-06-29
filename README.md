@@ -1,26 +1,41 @@
-# Task Management Application
+# TaskTrekker App using Python and Flask
 
-This repository contains a simple task management application implemented in Python using Flask for the backend and vanilla JavaScript for the frontend.
-The application allows users to add, remove, list,and recommend tasks according to the priority.
+## Description
+TaskTrekker is built with Python using the Flask framework. The app allows users to create, edit, and manage their tasks across multiple lists.
 
-`Features:`
+## Table of Contents
+- [Usage](#usage)
+- [Features](#features)
+- [Future Improvements](#future-improvements)
+- [Technologies Used](#technologies-used)
+- [Acknowledgments](#acknowledgments)
 
-* Add tasks with descriptions and priorities (Low, Medium, High).
-* Remove tasks by description.
-* List all tasks currently stored in the system.
-* Recommend a high-priority task based on machine learning.
-  
-`Tech Stack:`
+## Usage
+1. Run the app: `python main.py`
+2. Open a web browser and go to `http://127.0.0.1:5000`
+3. Interact with the app to create, edit, and manage your tasks.
 
-* Backend: Python, Flask
-* Frontend: HTML, CSS, JavaScript
-* Machine Learning: scikit-learn (Multinomial Naive Bayes)
-* Data Storage: CSV file (tasks.csv)
-  
-## How to Use:
+## Features
+- Create tasks with descriptions and due dates.
+- Edit existing task's description and due dates.
+- Mark tasks as completed (which will also remove them from your lists).
+- Manage multiple lists.
+- View completed tasks within each list.
+- Sort tasks by name, due status, or due date.
+- Create and delete lists.
 
-* Clone the repository to your local machine.
-* Install the required dependencies listed in `requirements.txt`.
-* Run the Flask application by executing `python main.py` in your terminal.
-* Access the application in your web browser at http://localhost:5000.
-* Use the provided menu options to interact with the task management system.
+## Future Improvements
+I'd consider enhancing the app in the future, including:
+- Adding user authentication for personalized task management.
+- Implementing task categorization and filtering.
+
+## Technologies Used
+- Python
+- Flask
+- Pandas
+- HTML
+- Bootstrap (CSS Framework)
+
+## Acknowledgments
+- [Bootstrap](https://getbootstrap.com) - CSS framework for styling.
+- [Pandas](https://pandas.pydata.org) - Used for data manipulation.
